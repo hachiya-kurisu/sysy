@@ -21,6 +21,11 @@ sysy: libsysy.a src/main.c
 	${CC} ${CFLAGS} -L. -o sysy src/main.c -lsysy
 	strip sysy
 
+doc: README.md
+
+README.md: README.gmi
+	cat README.gmi | sisyphus -f markdown > README.md
+
 install:
 	install sysy ${DESTDIR}${PREFIX}/bin/sysy
 	install libsysy.a ${DESTDIR}${PREFIX}/lib/libsysy.a
