@@ -31,4 +31,4 @@ clean:
 
 push:
 	got send
-	git push
+	git push github
