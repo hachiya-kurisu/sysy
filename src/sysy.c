@@ -57,7 +57,7 @@ static void line(enum state *state, char *pos, FILE *w) {
   if(pos[0] == '#') {
     int level = 0;
     while(pos[level] == '#' && level < 3) level++;
-    if(level > 0 && (pos[level] == ' ' || pos[level] == '\0')) {
+    if(pos[level] != '\0') {
       transition(state, VOID, w);
       emit("<h%d>", level);
       advance(w, &pos, level);
