@@ -41,10 +41,10 @@ static void transition(enum state *from, enum state to, FILE *w) {
 }
 
 static void line(enum state *state, char *pos, FILE *w) {
-  if(strspn(pos, " \t") == strlen(pos)) return transition(state, VOID, w);
   if(strncmp(pos, "```", 3) == 0)
     return transition(state, *state == PRE ? VOID : PRE, w);
   if(*state == PRE) { while(*pos) step(w, *pos++); return; }
+  if(strspn(pos, " \t") == strlen(pos)) return transition(state, VOID, w);
   if(strncmp(pos, "* ", 2) == 0) {
     transition(state, LIST, w);
     emit("<li>");
