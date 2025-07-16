@@ -1,28 +1,25 @@
 #include <stdio.h>
 #include <string.h>
-#include <ctype.h>
 #include <limits.h>
+#include "sysy.h"
 
 #define emit(...) fprintf(w, __VA_ARGS__)
-
-#include "sysy.h"
 
 static void step(FILE *w, char c) {
   switch(c) {
     case '&': emit("&amp;"); break;
     case '<': emit("&lt;"); break;
     case '>': emit("&gt;"); break;
+    case '"': emit("&quot;"); break;
     default: putc(c, w);
   }
 }
 
 static void advance(FILE *w, char **pos, int skip) {
-  *pos += skip;
-  while(isspace(**pos)) (*pos)++;
-  while(**pos) step(w, *(*pos)++);
+  *pos += skip; *pos += strspn(*pos, " \t"); while(**pos) step(w, *(*pos)++);
 }
 
-static void transition(enum state *from, enum state to, FILE *w) {
+static void shift(FILE *w, enum state *from, enum state to) {
   if(to == *from) { emit(to == TEXT || to == QUOTE ? "<br>" : ""); return; }
   switch(*from) {
     case LIST: emit("</ul>\n"); break;
@@ -40,61 +37,49 @@ static void transition(enum state *from, enum state to, FILE *w) {
   *from = to;
 }
 
-static void line(enum state *state, char *pos, FILE *w) {
-  if(strncmp(pos, "```", 3) == 0)
-    return transition(state, *state == PRE ? VOID : PRE, w);
-  if(*state == PRE) { while(*pos) step(w, *pos++); return; }
-  if(strspn(pos, " \t") == strlen(pos)) return transition(state, VOID, w);
-  if(strncmp(pos, "* ", 2) == 0) {
-    transition(state, LIST, w);
-    emit("<li>");
-    return advance(w, &pos, 2);
-  }
-  if(pos[0] == '>') {
-    transition(state, QUOTE, w);
-    return advance(w, &pos, 1);
-  }
+static void line(FILE *w, enum state *s, char *pos, int opts) {
+  if(strncmp(pos, "```", 3) == 0) return shift(w, s, *s == PRE ? VOID : PRE);
+  if(*s == PRE) { while(*pos) step(w, *pos++); return; }
+  if(strspn(pos, " \t") == strlen(pos)) return shift(w, s, VOID);
+  if(strncmp(pos, "* ", 2) == 0)
+    return shift(w, s, LIST), emit("<li>"), advance(w, &pos, 2), (void)0;
+  if(pos[0] == '>') return shift(w, s, QUOTE), advance(w, &pos, 1);
   if(pos[0] == '#') {
-    int level = 0;
-    while(pos[level] == '#' && level < 3) level++;
-    if(pos[level] != '\0') {
-      transition(state, VOID, w);
-      emit("<h%d>", level);
-      advance(w, &pos, level);
-      emit("</h%d>", level);
-      return;
-    }
+    int level = strspn(pos, "#"); level = level > 3 ? 3 : level;
+    return shift(w, s, VOID), emit("<h%d>", level),
+           advance(w, &pos, level), emit("</h%d>", level), (void)0;
   }
   if(strncmp(pos, "=>", 2) == 0) {
-    transition(state, TEXT, w);
-    pos += 2 + strspn(pos + 2, " \t");
+    shift(w, s, TEXT); pos += 2 + strspn(pos + 2, " \t");
     char *text = strchr(pos, ' ');
     if(text) *text++ = '\0', text += strspn(text, " \t"); 
-    if(strncmp(pos, "javascript:", 11) == 0 || strncmp(pos, "data:", 5) == 0)
-      return advance(w, &pos, 0);
-    emit("<a href=\"");
-    char *url = pos;
-    advance(w, &pos, 0);
-    emit("\">");
-    advance(w, text ? &text : &url, 0);
-    emit("</a>");
-    return;
+    if(!strncmp(pos, "javascript:", 11) || !strncmp(pos, "data:", 5))
+      return advance(w, text ? &text : &pos, 0);
+    char *url = pos, *ext = strrchr(pos, '.');
+    if(!ext || !(opts & SYSY_MEDIA)) goto fallback;
+    if((!strcmp(ext, ".jpg") || !strcmp(ext, ".png") || !strcmp(ext, ".gif")))
+      return emit("<img src=\""), advance(w, &pos, 0), emit("\" alt=\""),
+             advance(w, text ? &text : &url, 0), emit("\">"), (void)0;
+    if((!strcmp(ext, ".mp4") || !strcmp(ext, ".webm")))
+      return emit("<video src=\""), advance(w, &pos, 0),
+             emit("\" preload=metadata controls></video>"), (void)0;
+    if((!strcmp(ext, ".m4a") || !strcmp(ext, ".mp3")))
+      return emit("<audio src=\""), advance(w, &pos, 0),
+             emit("\" preload=metadata controls></audio>"), (void)0;
+fallback:
+    return emit("<a rel=nofollow href=\""), advance(w, &pos, 0), emit("\">"),
+           advance(w, text ? &text : &url, 0), emit("</a>"), (void)0;
   }
-  transition(state, TEXT, w);
-  while(*pos) step(w, *pos++);
+  shift(w, s, TEXT); while(*pos) step(w, *pos++);
 }
 
-int sysy(FILE *r, FILE *w) {
-  enum state state = VOID;
-  char buf[LINE_MAX] = {0};
-  char *pos;
+int sysy(FILE *w, FILE *r, int opts) {
+  enum state s = VOID;
+  char buf[LINE_MAX] = {0}, *pos;
   while((pos = fgets(buf, LINE_MAX, r))) {
     char *nl = strchr(buf, '\n');
     if(!nl && !feof(r)) return (fprintf(stderr, "line too long\n"), 1);
-    if(nl) *nl = '\0';
-    line(&state, pos, w);
-    emit("\n");
+    if(nl) *nl = '\0'; line(w, &s, pos, opts); emit("\n");
   }
-  transition(&state, VOID, w);
-  return 0;
+  return shift(w, &s, VOID), 0;
 }
