@@ -9,7 +9,7 @@ int main(int argc, char *argv[]) {
   int opt, opts = 0;
   while((opt = getopt(argc, argv, "vhmo:")) != -1) {
     switch(opt) {
-      case 'm': opts = SYSY_MEDIA; break;
+      case 'm': opts |= SYSY_MEDIA; break;
       case 'o': if(!(w = fopen(optarg, "w"))) perror(optarg), exit(1); break;
       case 'v': printf("%s %s\n", argv[0], VERSION); return 0;
       case 'h': printf("%s [-hv] [-o output] FILE...\n", argv[0]); return 0;
