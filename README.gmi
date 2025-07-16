@@ -1,14 +1,12 @@
 # sysy
 
-convert gemtext to html.
+transmute gmi to html through the arts of alchemical c
 
-(yeahhhh another one - i wanted something for c)
+## mandates
 
-## rules
-
-* sysy.c shall not exceed 100 lines
-* sysy.h shall not exceed 10 lines
-* main.c shall not exceed 50 lines
+the vessel sysy.c shall be bound by the law of economy
+its essence must be carefully weighed and proportioned
+exceed a century of lines and the formula surely fails
 
 ## author
 
