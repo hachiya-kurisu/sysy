@@ -45,7 +45,7 @@ static void line(FILE *w, enum state *s, char *pos, int opts) {
     return shift(w, s, LIST), emit("<li>"), advance(w, &pos, 2), (void)0;
   if(pos[0] == '>') return shift(w, s, QUOTE), advance(w, &pos, 1);
   if(pos[0] == '#') {
-    int level = strspn(pos, "#"); level = level > 3 ? 3 : level;
+    int level = (int)strspn(pos, "#"); level = level > 3 ? 3 : level;
     return shift(w, s, VOID), emit("<h%d>", level),
            advance(w, &pos, level), emit("</h%d>", level), (void)0;
   }
