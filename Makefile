@@ -4,7 +4,15 @@ OS != uname -s
 
 -include Makefile.$(OS)
 
-CFLAGS += -Wall -Wextra -std=c99 -DVERSION=\"${VERSION}\" -O2
+CFLAGS += -Wall -Wextra -std=c99 -DVERSION=\"${VERSION}\"
+
+CFLAGS += -fstack-protector-strong -D_FORTIFY_SOURCE=2
+CFLAGS += -Wshadow -Wcast-align -Wstrict-prototypes
+CFLAGS += -Wwrite-strings -Wconversion -Wformat-security
+CFLAGS += -Wmissing-prototypes -Wold-style-definition
+
+LINTFLAGS += --enable=all --inconclusive --language=c --library=posix
+LINTFLAGS += --quiet --suppress=missingIncludeSystem
 
 PREFIX ?= /usr/local
 MANDIR ?= /share/man
@@ -30,6 +38,9 @@ install:
 	install sysy ${DESTDIR}${PREFIX}/bin/sysy
 	install libsysy.a ${DESTDIR}${PREFIX}/lib/libsysy.a
 	install src/sysy.h ${DESTDIR}${PREFIX}/include/sysy.h
+
+lint:
+	cppcheck ${LINTFLAGS} src/*.c
 
 clean:
 	rm -f libsysy.a sysy.o sysy
