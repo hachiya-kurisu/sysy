@@ -35,9 +35,12 @@ README.md: README.gmi
 	cat README.gmi | sisyphus -f markdown > README.md
 
 install:
-	install sysy ${DESTDIR}${PREFIX}/bin/sysy
-	install libsysy.a ${DESTDIR}${PREFIX}/lib/libsysy.a
-	install src/sysy.h ${DESTDIR}${PREFIX}/include/sysy.h
+	install -d ${DESTDIR}${PREFIX}/bin
+	install -d ${DESTDIR}${PREFIX}/lib
+	install -d ${DESTDIR}${PREFIX}/include
+	install -m 755 sysy ${DESTDIR}${PREFIX}/bin/sysy
+	install -m 0644 libsysy.a ${DESTDIR}${PREFIX}/lib/libsysy.a
+	install -m 0644 src/sysy.h ${DESTDIR}${PREFIX}/include/sysy.h
 
 lint:
 	cppcheck ${LINTFLAGS} src/*.c
